@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Churrasco do Tetra ★</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Tema único: vermelho sangue com texto branco, estrela amarela */
+:root {
+  --bg: #8a0303;
+  --surface: #780208;
+  --ink: #ffffff;
+  --muted: #f3c9c9;
+  --line: rgba(255, 255, 255, .22);
+  --shade: rgba(0, 0, 0, .28);
+  --star: #ffd21f;
+  --display: "Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45; }
+[hidden] { display: none !important; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--star); outline-offset: 2px; }
+
+.wrap { max-width: 760px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header .wrap { padding-top: calc(22px + env(safe-area-inset-top, 0px)); padding-bottom: 20px; display: grid; gap: 16px; }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(34px, 8vw, 48px); line-height: .95; margin: 0; letter-spacing: .01em; text-transform: uppercase; text-wrap: balance; }
+h1 span { color: var(--star); display: inline-block; font-size: .8em; vertical-align: .08em; margin-left: .1em; }
+.status { font-size: 12px; color: var(--muted); }
+
+.score { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border-radius: 10px; overflow: hidden; }
+.score > div { background: var(--bg); padding: 10px 12px; min-width: 0; }
+.score dt { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.score dd { margin: 2px 0 0; font-family: var(--display); font-weight: 700; font-size: 26px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.score .neg::after { content: " ▼"; font-size: .55em; vertical-align: .2em; }
+.score .pos::after { content: " ▲"; font-size: .55em; vertical-align: .2em; }
+@media (max-width: 560px) { .score { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.settings { display: flex; gap: 10px 18px; flex-wrap: wrap; font-size: 13px; align-items: center; }
+.settings label { display: flex; align-items: center; gap: 6px; }
+.settings input { width: 84px; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--shade); font-variant-numeric: tabular-nums; }
+.bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--ink); width: 0; transition: width .3s; }
+.barlabel { font-size: 12px; color: var(--muted); margin-top: -10px; }
+
+.tabs { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top, 0px); }
+.tabs .wrap { display: flex; gap: 4px; }
+.tab { border: 0; background: none; padding: 12px 14px; font-weight: 600; color: var(--muted); border-bottom: 3px solid transparent; }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+.tab small { font-weight: 500; color: var(--muted); margin-left: 4px; font-variant-numeric: tabular-nums; }
+
+main .wrap { padding-top: 16px; padding-bottom: calc(40px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 12px; }
+.tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.tools input[type="search"] { flex: 1 1 180px; min-width: 0; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.chips { display: flex; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 6px 12px; font-size: 13px; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+.list { list-style: none; margin: 0; padding: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.list li { display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 12px; border-top: 1px solid var(--line); min-height: 48px; }
+.list li:first-child { border-top: 0; }
+.list .name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.list .ref { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.list li.done .name { color: var(--muted); }
+.toggle { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 5px 12px; font-size: 13px; font-weight: 600; white-space: nowrap; color: var(--muted); min-width: 96px; }
+.toggle.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.price { width: 92px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--shade); text-align: right; font-variant-numeric: tabular-nums; }
+.del { border: 0; background: none; color: var(--muted); width: 32px; height: 32px; border-radius: 6px; font-size: 18px; line-height: 1; flex: none; }
+.del:hover { background: var(--shade); color: var(--ink); }
+.del.confirm { width: auto; padding: 0 10px; font-size: 12px; font-weight: 700; background: var(--shade); color: var(--ink); }
+.empty { padding: 20px 14px; color: var(--muted); text-align: center; }
+
+.add { display: flex; gap: 8px; flex-wrap: wrap; }
+.add input { flex: 1 1 160px; min-width: 0; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.add input.small { flex: 0 1 110px; }
+.btn { border: 0; border-radius: 8px; padding: 9px 16px; font-weight: 700; background: var(--ink); color: var(--bg); }
+.btn-link { border: 0; background: none; color: var(--muted); text-decoration: underline; font-size: 13px; padding: 4px 0; justify-self: start; }
+.login { display: grid; gap: 10px; max-width: 420px; }
+.msg { font-size: 14px; background: var(--shade); border-radius: 8px; padding: 10px 12px; }
+@media (max-width: 480px) { .toggle { min-width: 0; padding: 5px 10px; } .price { width: 80px; } }
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="top">
+      <h1>Churrasco do tetra <span aria-label="1 estrela">★</span></h1>
+      <div class="status" id="status"></div>
+    </div>
+    <div id="placar" hidden>
+      <dl class="score">
+        <div><dt>Pagaram</dt><dd id="sPagaram">–</dd></div>
+        <div><dt>Arrecadado</dt><dd id="sArrec">–</dd></div>
+        <div><dt>Gastos</dt><dd id="sGastos">–</dd></div>
+        <div><dt>Saldo</dt><dd id="sSaldo">–</dd></div>
+      </dl>
+    </div>
+    <div class="bar" id="barra" aria-hidden="true" hidden><i id="bar"></i></div>
+    <div class="barlabel" id="barlabel"></div>
+    <div class="settings" id="ajustes" hidden>
+      <label for="cfgValor">Valor por pessoa R$ <input id="cfgValor" inputmode="decimal"></label>
+      <label for="cfgSalao">Salão R$ <input id="cfgSalao" inputmode="decimal"></label>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs" id="abas" hidden>
+  <div class="wrap" role="tablist">
+    <button class="tab" role="tab" id="tabPessoas" aria-selected="true">Pessoas<small id="cPessoas"></small></button>
+    <button class="tab" role="tab" id="tabCompras" aria-selected="false">Compras<small id="cCompras"></small></button>
+  </div>
+</nav>
+
+<main>
+  <div class="wrap">
+    <div class="msg" id="msg" hidden></div>
+
+    <form class="login" id="fLogin" hidden>
+      <p>Digite a senha para ver e editar a lista. Ela fica salva neste aparelho.</p>
+      <div class="add">
+        <input type="password" id="senha" placeholder="Senha" required aria-label="Senha" autocomplete="current-password">
+        <button class="btn" type="submit">Entrar</button>
+      </div>
+    </form>
+
+    <div id="app" hidden style="display:grid;gap:12px">
+      <div class="tools">
+        <input type="search" id="busca" placeholder="Buscar…" aria-label="Buscar">
+        <div class="chips" id="filtros">
+          <button class="chip" data-f="todos" aria-pressed="true">Todos</button>
+          <button class="chip" data-f="nao" aria-pressed="false" id="fNao">Não pagou</button>
+          <button class="chip" data-f="sim" aria-pressed="false" id="fSim">Pagou</button>
+        </div>
+      </div>
+      <ul class="list" id="lista"><li class="empty">Carregando a lista…</li></ul>
+      <form class="add" id="addForm">
+        <input id="addNome" placeholder="Nome da pessoa" aria-label="Nome" required>
+        <input id="addRef" class="small" placeholder="Preço ref." inputmode="decimal" aria-label="Preço de referência" hidden>
+        <button class="btn" type="submit">Adicionar</button>
+      </form>
+      <button class="btn-link" id="sair">Sair deste aparelho</button>
+    </div>
+  </div>
+</main>
+
+<script>
+(function () {
+  // Endereço da ponte (Apps Script). Não é segredo: sem a senha ela não responde nada.
+  const API_URL = "https://script.google.com/macros/s/AKfycby_gOfp1c5UHDK890TzeEPMtWuBQp2za5ibQRnIw83mzDY7MOfh0pgfhM0P-m7uXS0N/exec";
+  const CHAVE_SENHA = "churrasco-senha";
+
+  const $ = (id) => document.getElementById(id);
+  const brl = (n) => (n < 0 ? "-" : "") + "R$ " + Math.abs(n).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const num = (v) => (v == null || v === "" ? null : Number(v));
+  function parse(s) {
+    s = String(s == null ? "" : s).trim().replace(/R\$\s?/, "");
+    if (!s) return null;
+    if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+    const n = Number(s);
+    return isFinite(n) ? Math.round(n * 100) / 100 : null;
+  }
+
+  let items = [];
+  let aba = "pessoas", filtro = "todos", busca = "";
+
+  // ---------- Senha (guardada só neste aparelho) ----------
+  function getSenha() { try { return localStorage.getItem(CHAVE_SENHA) || ""; } catch (_) { return ""; } }
+  function setSenha(s) { try { s ? localStorage.setItem(CHAVE_SENHA, s) : localStorage.removeItem(CHAVE_SENHA); } catch (_) {} }
+  function msg(t) { $("msg").textContent = t || ""; $("msg").hidden = !t; }
+
+  function mostrarLogin(texto) {
+    ["app", "abas", "placar", "barra", "ajustes"].forEach((id) => { $(id).hidden = true; });
+    $("barlabel").textContent = ""; $("status").textContent = "";
+    $("fLogin").hidden = false;
+    msg(texto || "");
+    $("senha").focus();
+  }
+  function mostrarApp() {
+    $("fLogin").hidden = true;
+    ["app", "abas", "placar", "barra", "ajustes"].forEach((id) => { $(id).hidden = false; });
+  }
+
+  // ---------- Comunicação com a ponte ----------
+  // text/plain evita a checagem extra (preflight) que o Apps Script não suporta
+  async function api(acao, dados) {
+    const r = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(Object.assign({ senha: getSenha(), acao }, dados || {}))
+    });
+    const json = await r.json();
+    if (json.erro === "senha") { const e = new Error("senha"); e.code = "senha"; throw e; }
+    if (json.erro) throw new Error(json.detalhe || json.erro);
+    return json;
+  }
+
+  async function carregar() {
+    $("status").textContent = "Carregando…";
+    try {
+      const { itens } = await api("listar");
+      items = itens;
+      mostrarApp();
+      msg("");
+      render();
+      $("status").textContent = "Salvo na planilha";
+    } catch (e) {
+      $("status").textContent = "";
+      if (e.code === "senha") { setSenha(""); mostrarLogin("Senha incorreta."); return; }
+      msg("Não foi possível carregar a lista (" + e.message + "). Recarregue a página.");
+    }
+  }
+
+  // Aplica a mudança na tela na hora e grava em segundo plano; se falhar, recarrega da planilha
+  async function write(local, remoto) {
+    local();
+    render();
+    $("status").textContent = "Salvando…";
+    try { await remoto(); msg(""); $("status").textContent = "Salvo na planilha"; }
+    catch (e) {
+      if (e.code === "senha") { setSenha(""); mostrarLogin("Senha incorreta."); return; }
+      msg("Não foi possível salvar agora. Tente de novo em alguns segundos.");
+      carregar();
+    }
+  }
+
+  const find = (id) => items.find((i) => i.id === id);
+  const patch = (id, campos) => write(() => Object.assign(find(id) || {}, campos), () => api("salvar", { item: Object.assign({ id }, campos) }));
+  const remover = (id) => write(() => { items = items.filter((i) => i.id !== id); }, () => api("excluir", { id }));
+  const adicionar = (item) => write(() => { items.push(item); }, () => api("salvar", { item }));
+
+  // ---------- Contas ----------
+  const porOrdem = (a, b) => (num(a.ordem) || 0) - (num(b.ordem) || 0);
+  const pessoas = () => items.filter((i) => i.tipo === "pessoa").sort(porOrdem);
+  const compras = () => items.filter((i) => i.tipo === "compra").sort(porOrdem);
+  const cfg = (id, padrao) => { const c = find(id); return c && num(c.pago) != null ? num(c.pago) : padrao; };
+
+  function resumo() {
+    const ps = pessoas(), cs = compras();
+    const valor = cfg("valorPessoa", 52), salao = cfg("salao", 0);
+    const pagos = ps.filter((p) => p.ok).length;
+    const arrec = pagos * valor;
+    const gastos = cs.reduce((s, c) => s + (c.ok ? (num(c.pago) || 0) : 0), 0) + salao;
+    const saldo = arrec - gastos;
+    $("sPagaram").textContent = pagos + "/" + ps.length;
+    $("sArrec").textContent = brl(arrec);
+    $("sGastos").textContent = brl(gastos);
+    $("sSaldo").textContent = brl(saldo);
+    $("sSaldo").className = saldo < 0 ? "neg" : saldo > 0 ? "pos" : "";
+    const previsto = ps.length * valor;
+    $("bar").style.width = (previsto ? Math.min(100, arrec / previsto * 100) : 0) + "%";
+    const refTotal = cs.reduce((s, c) => s + (num(c.ref) || 0), 0);
+    $("barlabel").textContent = "Previsto se todos pagarem: " + brl(previsto) + " · Compras pela referência do hexa: " + brl(refTotal) + " + salão";
+    $("cPessoas").textContent = ps.length;
+    $("cCompras").textContent = cs.filter((c) => c.ok).length + "/" + cs.length;
+    if (document.activeElement !== $("cfgValor")) $("cfgValor").value = valor.toLocaleString("pt-BR");
+    if (document.activeElement !== $("cfgSalao")) $("cfgSalao").value = salao.toLocaleString("pt-BR");
+  }
+
+  function delBtn(onConfirm) {
+    const b = document.createElement("button");
+    b.className = "del"; b.textContent = "×"; b.setAttribute("aria-label", "Remover");
+    let t;
+    b.onclick = () => {
+      if (b.classList.contains("confirm")) { clearTimeout(t); onConfirm(); return; }
+      b.classList.add("confirm"); b.textContent = "Remover?";
+      t = setTimeout(() => { b.classList.remove("confirm"); b.textContent = "×"; }, 3000);
+    };
+    return b;
+  }
+
+  function render() {
+    resumo();
+    const ul = $("lista"); ul.innerHTML = "";
+    const isP = aba === "pessoas";
+    const fonte = isP ? pessoas() : compras();
+    const q = busca.toLowerCase();
+    const lista = fonte.filter((x) => String(x.nome || "").toLowerCase().includes(q))
+      .filter((x) => filtro === "todos" || (filtro === "sim") === !!x.ok);
+    if (!fonte.length) { ul.innerHTML = '<li class="empty">' + (isP ? "Ninguém na lista ainda. Adicione o primeiro nome abaixo." : "Nenhuma compra ainda. Adicione o primeiro item abaixo.") + "</li>"; return; }
+    if (!lista.length) { ul.innerHTML = '<li class="empty">Nada encontrado.</li>'; return; }
+    for (const x of lista) {
+      const li = document.createElement("li");
+      li.className = x.ok ? "done" : "";
+      const nm = document.createElement("div"); nm.className = "name"; nm.textContent = x.nome;
+      if (!isP && num(x.ref) != null) { const r = document.createElement("div"); r.className = "ref"; r.textContent = "Ref. hexa: " + brl(num(x.ref)); nm.appendChild(r); }
+      li.appendChild(nm);
+      if (!isP) {
+        const inp = document.createElement("input"); inp.className = "price"; inp.inputMode = "decimal";
+        inp.placeholder = "Pago R$"; inp.setAttribute("aria-label", "Preço pago " + x.nome);
+        inp.value = num(x.pago) != null ? num(x.pago).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "";
+        inp.onchange = () => {
+          const v = parse(inp.value);
+          if (v === num(x.pago)) return;
+          const campos = { pago: v };
+          if (v != null && !x.ok) campos.ok = true;
+          patch(x.id, campos);
+        };
+        inp.onkeydown = (e) => { if (e.key === "Enter") inp.blur(); };
+        li.appendChild(inp);
+      }
+      const t = document.createElement("button"); t.className = "toggle" + (x.ok ? " on" : "");
+      t.textContent = isP ? (x.ok ? "✓ Pagou" : "Não pagou") : (x.ok ? "✓ Comprado" : "Falta");
+      t.setAttribute("aria-pressed", String(!!x.ok));
+      t.onclick = () => patch(x.id, { ok: !x.ok });
+      li.appendChild(t);
+      li.appendChild(delBtn(() => remover(x.id)));
+      ul.appendChild(li);
+    }
+  }
+
+  function setAba(a) {
+    aba = a; filtro = "todos";
+    $("tabPessoas").setAttribute("aria-selected", String(a === "pessoas"));
+    $("tabCompras").setAttribute("aria-selected", String(a === "compras"));
+    $("fNao").textContent = a === "pessoas" ? "Não pagou" : "Falta";
+    $("fSim").textContent = a === "pessoas" ? "Pagou" : "Comprado";
+    document.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.f === "todos")));
+    $("addNome").placeholder = a === "pessoas" ? "Nome da pessoa" : "Item (ex.: Picanha 2kg)";
+    $("addRef").hidden = a === "pessoas";
+    render();
+  }
+
+  // ---------- Eventos ----------
+  $("tabPessoas").onclick = () => setAba("pessoas");
+  $("tabCompras").onclick = () => setAba("compras");
+  $("busca").oninput = (e) => { busca = e.target.value; render(); };
+  $("filtros").onclick = (e) => {
+    const c = e.target.closest(".chip"); if (!c) return;
+    filtro = c.dataset.f;
+    document.querySelectorAll(".chip").forEach((b) => b.setAttribute("aria-pressed", String(b === c)));
+    render();
+  };
+
+  function salvarCfg(id, nome, el) {
+    const v = parse(el.value);
+    const atual = cfg(id, null);
+    if (v == null || v === atual) { el.value = (atual || 0).toLocaleString("pt-BR"); return; }
+    if (find(id)) patch(id, { pago: v });
+    else adicionar({ id, tipo: "config", nome, ok: false, ref: null, pago: v, ordem: 0 });
+  }
+  $("cfgValor").onchange = (e) => salvarCfg("valorPessoa", "Valor por pessoa", e.target);
+  $("cfgSalao").onchange = (e) => salvarCfg("salao", "Salão", e.target);
+
+  $("addForm").onsubmit = (e) => {
+    e.preventDefault();
+    const nome = $("addNome").value.trim(); if (!nome) return;
+    const isP = aba === "pessoas";
+    const lista = isP ? pessoas() : compras();
+    const ordem = lista.reduce((m, x) => Math.max(m, num(x.ordem) || 0), 0) + 1;
+    const id = (isP ? "p" : "c") + Date.now().toString(36);
+    adicionar({ id, tipo: isP ? "pessoa" : "compra", nome, ok: false, ref: isP ? null : parse($("addRef").value), pago: null, ordem });
+    $("addNome").value = ""; $("addRef").value = ""; $("addNome").focus();
+  };
+
+  $("fLogin").onsubmit = (e) => {
+    e.preventDefault();
+    setSenha($("senha").value.trim());
+    $("senha").value = "";
+    msg("");
+    carregar();
+  };
+  $("sair").onclick = () => { setSenha(""); items = []; mostrarLogin(""); };
+
+  if (getSenha()) carregar(); else mostrarLogin("");
+})();
+</script>
+</body>
+</html>
