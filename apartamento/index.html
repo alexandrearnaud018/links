@@ -579,7 +579,8 @@ footer { display: flex; justify-content: flex-end; }
   document.addEventListener("pointercancel", endDrag);
 
   // Atualiza ao voltar para a aba e a cada 30 s, para ver mudanças feitas em outro aparelho
-  document.addEventListener("visibilitychange", () => { if (!document.hidden && getSenha()) carregar(); });
+  // Não recarrega durante uma edição, para não apagar o que já foi digitado
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && getSenha() && !editing && !buying) carregar(); });
   setInterval(() => { if (!document.hidden && getSenha() && !editing && !buying) carregar(); }, 30000);
 
   if (getSenha()) { render(); carregar(); } else mostrarLogin("");
