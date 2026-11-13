@@ -84,7 +84,7 @@ main .wrap { padding-top: 16px; padding-bottom: calc(40px + env(safe-area-inset-
 .btn-link { border: 0; background: none; color: var(--muted); text-decoration: underline; font-size: 13px; padding: 4px 0; justify-self: start; }
 .login { display: grid; gap: 10px; max-width: 420px; }
 .msg { font-size: 14px; background: var(--shade); border-radius: 8px; padding: 10px 12px; }
-@media (max-width: 480px) { .toggle { min-width: 0; padding: 5px 10px; } .price { width: 80px; } }
+@media (max-width: 480px) { .tab { padding: 12px 8px; } .toggle { min-width: 0; padding: 5px 10px; } .price { width: 80px; } }
 @media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
 </style>
 </head>
@@ -117,6 +117,7 @@ main .wrap { padding-top: 16px; padding-bottom: calc(40px + env(safe-area-inset-
   <div class="wrap" role="tablist">
     <button class="tab" role="tab" id="tabPessoas" aria-selected="true">Pessoas<small id="cPessoas"></small></button>
     <button class="tab" role="tab" id="tabCompras" aria-selected="false">Compras<small id="cCompras"></small></button>
+    <button class="tab" role="tab" id="tabPend" aria-selected="false">Pendências<small id="cPend"></small></button>
   </div>
 </nav>
 
@@ -203,6 +204,39 @@ main .wrap { padding-top: 16px; padding-bottom: calc(40px + env(safe-area-inset-
     return json;
   }
 
+  // Pendências iniciais: gravadas na planilha uma única vez (marcador "pendSeed")
+  const PEND_INICIAIS = [
+    "Decidir se compra picanha suína (o preço tava caro)",
+    "Decidir se compra a costela janelinha",
+    "Ver se precisa de 2 óleos (só comprei 1)",
+    "Descer com o bingo e pensar em algo pra marcar",
+    "Descer com as bandeirinhas",
+    "Descer com o chapéu da Brahma",
+    "Comprar gelo no dia",
+    "Comprar sorvete no dia",
+    "Descer com coisas de cozinha",
+    "Descer com coisas pro banheiro (papel higiênico, sabonete, toalha)",
+    "Temperar filet mignon e frango",
+    "Comprar descartáveis vermelhos",
+    "Descobrir o que é o acendedor",
+    "Decidir no dia se compra fraldinha",
+    "Comprar sal de parrilha (tava faltando no mercado)"
+  ];
+  async function semearPendencias() {
+    if (find("pendSeed")) return;
+    const novos = PEND_INICIAIS.map((nome, i) => ({ id: "d" + String(i + 1).padStart(2, "0"), tipo: "pendencia", nome, ok: false, ref: null, pago: null, ordem: i + 1 }));
+    const marcador = { id: "pendSeed", tipo: "config", nome: "Pendências criadas", ok: true, ref: null, pago: null, ordem: 0 };
+    const faltam = novos.filter((n) => !find(n.id));
+    items.push(marcador, ...faltam);
+    render();
+    $("status").textContent = "Salvando…";
+    try {
+      for (const n of faltam) await api("salvar", { item: n });
+      await api("salvar", { item: marcador });
+      $("status").textContent = "Salvo na planilha";
+    } catch (e) { msg("Não foi possível salvar as pendências agora. Recarregue a página."); }
+  }
+
   async function carregar() {
     $("status").textContent = "Carregando…";
     try {
@@ -212,6 +246,7 @@ main .wrap { padding-top: 16px; padding-bottom: calc(40px + env(safe-area-inset-
       msg("");
       render();
       $("status").textContent = "Salvo na planilha";
+      semearPendencias();
     } catch (e) {
       $("status").textContent = "";
       if (e.code === "senha") { setSenha(""); mostrarLogin("Senha incorreta."); return; }
@@ -241,6 +276,8 @@ main .wrap { padding-top: 16px; padding-bottom: calc(40px + env(safe-area-inset-
   const porOrdem = (a, b) => (num(a.ordem) || 0) - (num(b.ordem) || 0);
   const pessoas = () => items.filter((i) => i.tipo === "pessoa").sort(porOrdem);
   const compras = () => items.filter((i) => i.tipo === "compra").sort(porOrdem);
+  const pendencias = () => items.filter((i) => i.tipo === "pendencia").sort(porOrdem);
+  const doTipo = { pessoas, compras, pendencias };
   const cfg = (id, padrao) => { const c = find(id); return c && num(c.pago) != null ? num(c.pago) : padrao; };
 
   function resumo() {
@@ -261,6 +298,8 @@ main .wrap { padding-top: 16px; padding-bottom: calc(40px + env(safe-area-inset-
     $("barlabel").textContent = "Previsto se todos pagarem: " + brl(previsto) + " · Compras pela referência do hexa: " + brl(refTotal) + " + salão";
     $("cPessoas").textContent = ps.length;
     $("cCompras").textContent = cs.filter((c) => c.ok).length + "/" + cs.length;
+    const pd = pendencias();
+    $("cPend").textContent = pd.filter((c) => c.ok).length + "/" + pd.length;
     if (document.activeElement !== $("cfgValor")) $("cfgValor").value = valor.toLocaleString("pt-BR");
     if (document.activeElement !== $("cfgSalao")) $("cfgSalao").value = salao.toLocaleString("pt-BR");
   }
@@ -280,20 +319,20 @@ main .wrap { padding-top: 16px; padding-bottom: calc(40px + env(safe-area-inset-
   function render() {
     resumo();
     const ul = $("lista"); ul.innerHTML = "";
-    const isP = aba === "pessoas";
-    const fonte = isP ? pessoas() : compras();
+    const isP = aba === "pessoas", isC = aba === "compras";
+    const fonte = doTipo[aba]();
     const q = busca.toLowerCase();
     const lista = fonte.filter((x) => String(x.nome || "").toLowerCase().includes(q))
       .filter((x) => filtro === "todos" || (filtro === "sim") === !!x.ok);
-    if (!fonte.length) { ul.innerHTML = '<li class="empty">' + (isP ? "Ninguém na lista ainda. Adicione o primeiro nome abaixo." : "Nenhuma compra ainda. Adicione o primeiro item abaixo.") + "</li>"; return; }
+    if (!fonte.length) { ul.innerHTML = '<li class="empty">' + (isP ? "Ninguém na lista ainda. Adicione o primeiro nome abaixo." : isC ? "Nenhuma compra ainda. Adicione o primeiro item abaixo." : "Nenhuma pendência. Adicione abaixo.") + "</li>"; return; }
     if (!lista.length) { ul.innerHTML = '<li class="empty">Nada encontrado.</li>'; return; }
     for (const x of lista) {
       const li = document.createElement("li");
       li.className = x.ok ? "done" : "";
       const nm = document.createElement("div"); nm.className = "name"; nm.textContent = x.nome;
-      if (!isP && num(x.ref) != null) { const r = document.createElement("div"); r.className = "ref"; r.textContent = "Ref. hexa: " + brl(num(x.ref)); nm.appendChild(r); }
+      if (isC && num(x.ref) != null) { const r = document.createElement("div"); r.className = "ref"; r.textContent = "Ref. hexa: " + brl(num(x.ref)); nm.appendChild(r); }
       li.appendChild(nm);
-      if (!isP) {
+      if (isC) {
         const inp = document.createElement("input"); inp.className = "price"; inp.inputMode = "decimal";
         inp.placeholder = "Pago R$"; inp.setAttribute("aria-label", "Preço pago " + x.nome);
         inp.value = num(x.pago) != null ? num(x.pago).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "";
@@ -308,7 +347,7 @@ main .wrap { padding-top: 16px; padding-bottom: calc(40px + env(safe-area-inset-
         li.appendChild(inp);
       }
       const t = document.createElement("button"); t.className = "toggle" + (x.ok ? " on" : "");
-      t.textContent = isP ? (x.ok ? "✓ Pagou" : "Não pagou") : (x.ok ? "✓ Comprado" : "Falta");
+      t.textContent = isP ? (x.ok ? "✓ Pagou" : "Não pagou") : isC ? (x.ok ? "✓ Comprado" : "Falta") : (x.ok ? "✓ Resolvido" : "Pendente");
       t.setAttribute("aria-pressed", String(!!x.ok));
       t.onclick = () => patch(x.id, { ok: !x.ok });
       li.appendChild(t);
@@ -321,17 +360,20 @@ main .wrap { padding-top: 16px; padding-bottom: calc(40px + env(safe-area-inset-
     aba = a; filtro = "todos";
     $("tabPessoas").setAttribute("aria-selected", String(a === "pessoas"));
     $("tabCompras").setAttribute("aria-selected", String(a === "compras"));
-    $("fNao").textContent = a === "pessoas" ? "Não pagou" : "Falta";
-    $("fSim").textContent = a === "pessoas" ? "Pagou" : "Comprado";
+    $("tabPend").setAttribute("aria-selected", String(a === "pendencias"));
+    const rot = { pessoas: ["Não pagou", "Pagou"], compras: ["Falta", "Comprado"], pendencias: ["Pendente", "Resolvido"] }[a];
+    $("fNao").textContent = rot[0];
+    $("fSim").textContent = rot[1];
     document.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c.dataset.f === "todos")));
-    $("addNome").placeholder = a === "pessoas" ? "Nome da pessoa" : "Item (ex.: Picanha 2kg)";
-    $("addRef").hidden = a === "pessoas";
+    $("addNome").placeholder = { pessoas: "Nome da pessoa", compras: "Item (ex.: Picanha 2kg)", pendencias: "Nova pendência" }[a];
+    $("addRef").hidden = a !== "compras";
     render();
   }
 
   // ---------- Eventos ----------
   $("tabPessoas").onclick = () => setAba("pessoas");
   $("tabCompras").onclick = () => setAba("compras");
+  $("tabPend").onclick = () => setAba("pendencias");
   $("busca").oninput = (e) => { busca = e.target.value; render(); };
   $("filtros").onclick = (e) => {
     const c = e.target.closest(".chip"); if (!c) return;
@@ -353,11 +395,11 @@ main .wrap { padding-top: 16px; padding-bottom: calc(40px + env(safe-area-inset-
   $("addForm").onsubmit = (e) => {
     e.preventDefault();
     const nome = $("addNome").value.trim(); if (!nome) return;
-    const isP = aba === "pessoas";
-    const lista = isP ? pessoas() : compras();
+    const lista = doTipo[aba]();
     const ordem = lista.reduce((m, x) => Math.max(m, num(x.ordem) || 0), 0) + 1;
-    const id = (isP ? "p" : "c") + Date.now().toString(36);
-    adicionar({ id, tipo: isP ? "pessoa" : "compra", nome, ok: false, ref: isP ? null : parse($("addRef").value), pago: null, ordem });
+    const tipo = { pessoas: "pessoa", compras: "compra", pendencias: "pendencia" }[aba];
+    const id = { pessoa: "p", compra: "c", pendencia: "d" }[tipo] + Date.now().toString(36);
+    adicionar({ id, tipo, nome, ok: false, ref: aba === "compras" ? parse($("addRef").value) : null, pago: null, ordem });
     $("addNome").value = ""; $("addRef").value = ""; $("addNome").focus();
   };
 
