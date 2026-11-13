@@ -204,7 +204,8 @@ main .wrap { padding-top: 16px; padding-bottom: calc(40px + env(safe-area-inset-
     return json;
   }
 
-  // Pendências iniciais: gravadas na planilha uma única vez (marcador "pendSeed")
+  // Pendências pré-carregadas: cada lote é gravado na planilha uma única vez (marcador próprio),
+  // então apagar uma pendência no site não faz ela voltar. Para incluir mais, crie um lote novo.
   const PEND_INICIAIS = [
     "Decidir se compra picanha suína (o preço tava caro)",
     "Decidir se compra a costela janelinha",
@@ -222,10 +223,17 @@ main .wrap { padding-top: 16px; padding-bottom: calc(40px + env(safe-area-inset-
     "Decidir no dia se compra fraldinha",
     "Comprar sal de parrilha (tava faltando no mercado)"
   ];
+  const LOTES = [
+    { marcador: "pendSeed", inicio: 1, nomes: PEND_INICIAIS },
+    { marcador: "pendSeed2", inicio: 16, nomes: ["Ver a questão da bola (a minha deve estar furada, alguém precisa levar)"] }
+  ];
   async function semearPendencias() {
-    if (find("pendSeed")) return;
-    const novos = PEND_INICIAIS.map((nome, i) => ({ id: "d" + String(i + 1).padStart(2, "0"), tipo: "pendencia", nome, ok: false, ref: null, pago: null, ordem: i + 1 }));
-    const marcador = { id: "pendSeed", tipo: "config", nome: "Pendências criadas", ok: true, ref: null, pago: null, ordem: 0 };
+    for (const lote of LOTES) await semearLote(lote);
+  }
+  async function semearLote(lote) {
+    if (find(lote.marcador)) return;
+    const novos = lote.nomes.map((nome, i) => ({ id: "d" + String(lote.inicio + i).padStart(2, "0"), tipo: "pendencia", nome, ok: false, ref: null, pago: null, ordem: lote.inicio + i }));
+    const marcador = { id: lote.marcador, tipo: "config", nome: "Pendências criadas", ok: true, ref: null, pago: null, ordem: 0 };
     const faltam = novos.filter((n) => !find(n.id));
     items.push(marcador, ...faltam);
     render();
